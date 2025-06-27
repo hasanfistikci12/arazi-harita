@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ADIM 1: KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyDD1OsFX2HhTI-pTLWR6-fnp8q8SLT9uUM",
-        authDomain: "arazi-haritam.firebaseapp.com",
-        projectId: "arazi-haritam",
-        storageBucket: "arazi-haritam.appspot.com",
-        messagingSenderId: "144286739937",
-        appId: "1:144286739937:web:32be120ea7ec339cfe36a0"
+        apiKey: "AIzaSyB38rAHCtL_5QCJCut9AkaMFsEFBmk9Zco",
+        authDomain: "arazi-maps.firebaseapp.com",
+        projectId: "arazi-maps",
+        storageBucket: "arazi-maps.firebasestorage.app",
+        messagingSenderId: "851218950638",
+        appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
     };
 
     // Firebase'i başlat
