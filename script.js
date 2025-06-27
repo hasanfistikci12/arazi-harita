@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE & CONFIG ---
     let currentPinInfo = null;
-    let lightbox = null;
+    let currentLightboxImages = []; 
+    let currentLightboxIndex = 0;
     let localTreesCache = [];
     const imageWidth = 2048;
     const imageHeight = 1536;
@@ -100,7 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
         trees.forEach(tree => {
             if (!tree.coords) return;
             const marker = L.marker([tree.coords.lat, tree.coords.lng], { icon: icons[tree.pinColor] || icons.grey }).addTo(map);
-            marker.on('click', () => { openEditModal(tree.id); });
+            marker.on('click', () => {
+                openEditModal(tree.id);
+            });
         });
     }
 
@@ -124,11 +127,50 @@ document.addEventListener('DOMContentLoaded', () => {
         imageUrls.forEach((imgSrc, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'img-preview-wrapper';
-            wrapper.innerHTML = `<a href="${imgSrc}"><img src="${imgSrc}" class="img-preview" data-index="${index}"></a><button class="delete-img-btn" data-src="${imgSrc}">&times;</button>`;
+            
+            const previewImg = document.createElement('img');
+            previewImg.src = imgSrc;
+            previewImg.className = 'img-preview';
+            previewImg.onclick = () => openLightbox(imageUrls, index);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-img-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.dataset.src = imgSrc; // Silme için URL'i sakla
+            
+            wrapper.appendChild(previewImg);
+            wrapper.appendChild(deleteBtn);
             imagePreviewContainer.appendChild(wrapper);
         });
-        if (lightbox) lightbox.destroy();
-        lightbox = new SimpleLightbox('#image-preview-container a');
+    }
+
+    // --- ÖZEL GALERİ FONKSİYONLARI ---
+    function openLightbox(images, startIndex) {
+        currentLightboxImages = images;
+        currentLightboxIndex = startIndex;
+        updateLightboxImage();
+        customLightbox.classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+        customLightbox.classList.add('hidden');
+        currentLightboxImages = [];
+    }
+
+    function updateLightboxImage() {
+        if(currentLightboxImages.length > 0) {
+            lightboxImg.src = currentLightboxImages[currentLightboxIndex];
+        }
+    }
+
+    function showNextImage() {
+        currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
+        updateLightboxImage();
+    }
+    
+    function showPrevImage() {
+        currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+        updateLightboxImage();
     }
 
     // --- MODAL & FORM LOGIC ---
@@ -158,15 +200,17 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.style.display = 'none';
         modal.style.display = 'block';
     }
+    
+    function closeModal() {
+        modal.style.display = 'none';
+        currentPinInfo = null;
+    }
 
     async function handleSave() {
         if (!currentPinInfo) return;
         showLoader();
         try {
-            let treeData = {};
-            if (currentPinInfo.id) {
-                treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
-            }
+            const treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
             const selectedColor = document.querySelector('.color-dot.selected').dataset.color;
             const treeObject = {
                 title: titleInput.value || "İsimsiz Ağaç",
@@ -193,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const tree = localTreesCache.find(t => t.id === currentPinInfo.id);
                 if (tree && tree.imageUrls && tree.imageUrls.length > 0) {
-                    const deletePromises = tree.imageUrls.map(url => storage.refFromURL(url).delete().catch(err => console.warn("Resim silinemedi (zaten silinmiş olabilir):", err)));
+                    const deletePromises = tree.imageUrls.map(url => storage.refFromURL(url).delete().catch(err => console.warn("Resim silinemedi:", err)));
                     await Promise.all(deletePromises);
                 }
                 await db.collection("trees").doc(currentPinInfo.id).delete();
@@ -203,17 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- IMAGE HANDLING ---
+    // --- IMAGE HANDLING (STORAGE KULLANAN VERSİYON) ---
     async function handleImageUpload(files) {
         if (!currentPinInfo || !currentPinInfo.id) {
             alert("Lütfen önce ağaç bilgilerini 'Değişiklikleri Kaydet' diyerek kaydedin, sonra fotoğraf ekleyin."); return;
         }
         const treeRef = db.collection("trees").doc(currentPinInfo.id);
         const treeDoc = await treeRef.get();
-        if (!treeDoc.exists) {
-            alert("Ağaç henüz veritabanında oluşturulmadı. Lütfen önce kaydedin.");
-            return;
-        }
         const existingImageCount = treeDoc.data().imageUrls?.length || 0;
         if (existingImageCount + files.length > 10) { alert("En fazla 10 fotoğraf yükleyebilirsiniz."); return; }
         if (files.length === 0) return;
@@ -229,8 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadUrls = await Promise.all(uploadPromises);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayUnion(...downloadUrls) });
             showToast(`${files.length} fotoğraf yüklendi ve kaydedildi.`);
-        } catch (error) { console.error("Fotoğraf yükleme hatası:", error); showToast("Hata: Fotoğraflar yüklenemedi."); }
-        finally { hideLoader(); }
+        } catch (error) {
+            console.error("Fotoğraf yükleme hatası:", error);
+            showToast("Hata: Fotoğraflar yüklenemedi.");
+        } finally {
+            hideLoader();
+        }
     }
 
     async function handleDeleteImage(imageUrl) {
@@ -244,15 +288,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const treeRef = db.collection("trees").doc(currentPinInfo.id);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayRemove(imageUrl) });
             showToast("Fotoğraf silindi.");
-        } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi."); }
-        finally { hideLoader(); }
+        } catch (error) {
+            console.error("Fotoğraf silme hatası:", error);
+            showToast("Hata: Fotoğraf silinemedi.");
+        } finally {
+            hideLoader();
+        }
     }
 
     // --- EVENT LISTENERS & INITIALIZATION ---
-    function closeModal() {
-        modal.style.display = 'none';
-        currentPinInfo = null;
-    }
     closeButton.onclick = closeModal;
     saveButton.onclick = handleSave;
     deleteButton.onclick = handleDelete;
@@ -273,12 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('delete-img-btn')) {
             const imageUrl = e.target.dataset.src;
             handleDeleteImage(imageUrl);
-        } else if (e.target.classList.contains('img-preview')) {
-            const clickedImageSrc = e.target.src;
-            const allImageElements = imagePreviewContainer.querySelectorAll('.img-preview');
-            const allImageUrls = Array.from(allImageElements).map(el => el.src);
-            const clickedIndex = allImageUrls.findIndex(url => url === clickedImageSrc);
-            openLightbox(allImageUrls, clickedIndex);
         }
     });
     document.getElementById('addFromGallery').onclick = () => galleryUpload.click();
@@ -287,35 +325,21 @@ document.addEventListener('DOMContentLoaded', () => {
     cameraUpload.onchange = (e) => handleImageUpload(e.target.files);
     pinColorSelector.addEventListener('click', e => { if (e.target.classList.contains('color-dot')) { document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('selected')); e.target.classList.add('selected'); } });
     
-    const lightboxNavPrev = document.querySelector('.lightbox-nav.prev');
-    const lightboxNavNext = document.querySelector('.lightbox-nav.next');
-    function openLightbox(images, startIndex) {
-        currentLightboxImages = images;
-        currentLightboxIndex = startIndex;
-        updateLightboxImage();
-        customLightbox.classList.remove('hidden');
-    }
-    function closeLightbox() {
-        customLightbox.classList.add('hidden');
-        currentLightboxImages = [];
-    }
-    function updateLightboxImage() {
-        if(currentLightboxImages.length > 0) lightboxImg.src = currentLightboxImages[currentLightboxIndex];
-    }
-    function showNextImage() {
-        currentLightboxIndex = (currentLightboxIndex + 1) % currentLightboxImages.length;
-        updateLightboxImage();
-    }
-    function showPrevImage() {
-        currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
-        updateLightboxImage();
-    }
     lightboxClose.onclick = closeLightbox;
     lightboxNext.onclick = showNextImage;
     lightboxPrev.onclick = showPrevImage;
-    hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); setTimeout(() => map.invalidateSize(), 300); };
-    closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
-    window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
+
+    hamburgerMenu.onclick = () => {
+        sidebar.classList.add('visible');
+        setTimeout(() => map.invalidateSize(), 300);
+    };
+    closeSidebar.onclick = () => {
+        sidebar.classList.remove('visible');
+        setTimeout(() => map.invalidateSize(), 300);
+    };
+    window.addEventListener('resize', () => {
+        setTimeout(() => map.invalidateSize(), 150);
+    });
 
     listenForRealtimeUpdates();
 });
