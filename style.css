@@ -1,4 +1,3 @@
-/* :root ve body stilleri aynı kalabilir */
 :root {
     --primary-color: #4CAF50;
     --danger-color: #f44336;
@@ -6,7 +5,6 @@
     --dark-grey: #333;
     --border-color: #ddd;
 }
-
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
@@ -15,8 +13,6 @@ body {
     overflow: hidden;
     color: var(--dark-grey);
 }
-
-/* .main-container ve Sidebar stilleri aynı kalabilir */
 .main-container { display: flex; height: 100%; }
 #sidebar { width: 320px; background-color: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease; }
 .sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
@@ -26,8 +22,7 @@ body {
 .pin-list-item { display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
 .pin-list-item:hover { background-color: var(--light-grey); }
 .list-image-preview { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background-color: #eee; }
-.list-item-content h3 { margin: 0 0_8px 0; font-size: 1em; }
-/* YENİ: Liste içindeki açıklama stili */
+.list-item-content h3 { margin: 0 0 8px 0; font-size: 1em; }
 .list-item-content p {
     margin: 0;
     font-size: 0.85em;
@@ -38,24 +33,21 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
-
-/* Main Content, Map, Modal stilleri aynı kalabilir */
 #main-content { flex-grow: 1; display: flex; flex-direction: column; }
 .map-header { padding: 15px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; }
 .map-header h1 { margin: 0; font-size: 1.2em; }
 #hamburger-menu { font-size: 24px; cursor: pointer; margin-right: 15px; display: none; }
-#map { flex-grow: 1; background-color: #e8e8e8; }
+#map-wrapper { flex-grow: 1; background-color: #e8e8e8; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 1rem; box-sizing: border-box; }
+#map { width: 100%; height: 100%; max-width: 100%; max-height: 100%; aspect-ratio: 2048 / 1536; z-index: 1; }
 .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
 .modal-content { background-color: #fff; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-/* Diğer tüm modal, input, button stilleri aynı kalabilir */
 .close-button { color: #aaa; position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
 #modalTitleInput { width: 100%; border: none; font-size: 1.8em; font-weight: bold; padding: 10px 0; margin-bottom: 15px; box-sizing: border-box; }
 #modalTitleInput:focus { outline: none; }
 #image-container { margin-bottom: 20px; }
 #image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
 .img-preview-wrapper { position: relative; }
-.img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; }
+.img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; }
 .delete-img-btn { position: absolute; top: -5px; right: -5px; background: black; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 22px; text-align: center; }
 .photo-actions { display: flex; gap: 10px; }
 .photo-add-btn { background-color: #e9e9e9; border: 1px dashed #ccc; padding: 10px; flex-grow: 1; border-radius: 8px; cursor: pointer; }
@@ -73,56 +65,19 @@ select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px s
 .modal-buttons { display: flex; justify-content: space-between; align-items: center; }
 .save-btn { background-color: var(--primary-color); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; }
 .delete-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; text-decoration: underline; }
-
-/* YENİ: Loader stilleri */
-#loader-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(255, 255, 255, 0.7);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.loader-spinner {
-    border: 8px solid #f3f3f3;
-    border-top: 8px solid var(--primary-color);
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* YENİ: Toast Notification stilleri */
-#toast-notification {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: var(--dark-grey);
-    color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    transform: translateY(20px);
-}
-#toast-notification.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.hidden {
-    display: none !important;
-}
-
-
-/* Mobil Uyumlu Tasarım stilleri aynı kalabilir */
+#loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.7); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+.loader-spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+#toast-notification { position: fixed; bottom: 20px; right: 20px; background-color: var(--dark-grey); color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(20px); }
+#toast-notification.show { opacity: 1; transform: translateY(0); }
+.hidden { display: none !important; }
+#custom-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+.lightbox-content { max-width: 90%; max-height: 80%; object-fit: contain; }
+.lightbox-close { position: absolute; top: 20px; right: 35px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
+.lightbox-nav { cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%); width: auto; padding: 16px; color: white; font-weight: bold; font-size: 20px; transition: 0.3s ease; user-select: none; background-color: rgba(0,0,0,0.3); }
+.lightbox-nav.prev { left: 0; border-radius: 0 3px 3px 0; }
+.lightbox-nav.next { right: 0; border-radius: 3px 0 0 3px; }
+.lightbox-nav:hover { background-color: rgba(0,0,0,0.8); }
 @media (max-width: 768px) {
     #sidebar { position: fixed; left: 0; top: 0; height: 100%; z-index: 2000; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
     #sidebar.visible { transform: translateX(0); }
