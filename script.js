@@ -3,13 +3,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ADIM 1: KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyDD1OsFX2HhTI-pTLWR6-fnp8q8SLT9uUM",
-        authDomain: "arazi-haritam.firebaseapp.com",
-        projectId: "arazi-haritam",
-        storageBucket: "arazi-haritam.appspot.com",
-        messagingSenderId: "144286739937",
-        appId: "1:144286739937:web:32be120ea7ec339cfe36a0"
-    };
+        apiKey: "AIzaSyDD1OsFX2HhTI-pTLWR6-fnp8q8SLT9uUM", // SİZİN BİLGİLERİNİZ
+        authDomain: "arazi-haritam.firebaseapp.com",      // SİZİN BİLGİLERİNİZ
+        projectId: "arazi-haritam",                       // SİZİN BİLGİLERİNİZ
+        storageBucket: "arazi-haritam.appspot.com",       // SİZİN BİLGİLERİNİZ
+        messagingSenderId: "144286739937",                // SİZİN BİLGİLERİNİZ
+        appId: "1:144286739937:web:32be120ea7ec339cfe36a0" // SİZİN BİLGİLERİNİZ
+   
+  };
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
