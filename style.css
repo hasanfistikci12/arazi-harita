@@ -1,0 +1,133 @@
+/* :root ve body stilleri aynı kalabilir */
+:root {
+    --primary-color: #4CAF50;
+    --danger-color: #f44336;
+    --light-grey: #f4f4f4;
+    --dark-grey: #333;
+    --border-color: #ddd;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    color: var(--dark-grey);
+}
+
+/* .main-container ve Sidebar stilleri aynı kalabilir */
+.main-container { display: flex; height: 100%; }
+#sidebar { width: 320px; background-color: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease; }
+.sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header h2 { margin: 0; font-size: 1.2em; }
+#close-sidebar { display: none; font-size: 24px; cursor: pointer; }
+#pin-list { list-style-type: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+.pin-list-item { display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+.pin-list-item:hover { background-color: var(--light-grey); }
+.list-image-preview { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background-color: #eee; }
+.list-item-content h3 { margin: 0 0_8px 0; font-size: 1em; }
+/* YENİ: Liste içindeki açıklama stili */
+.list-item-content p {
+    margin: 0;
+    font-size: 0.85em;
+    color: #666;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* Main Content, Map, Modal stilleri aynı kalabilir */
+#main-content { flex-grow: 1; display: flex; flex-direction: column; }
+.map-header { padding: 15px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; }
+.map-header h1 { margin: 0; font-size: 1.2em; }
+#hamburger-menu { font-size: 24px; cursor: pointer; margin-right: 15px; display: none; }
+#map { flex-grow: 1; background-color: #e8e8e8; }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+.modal-content { background-color: #fff; margin: 5% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+/* Diğer tüm modal, input, button stilleri aynı kalabilir */
+.close-button { color: #aaa; position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+#modalTitleInput { width: 100%; border: none; font-size: 1.8em; font-weight: bold; padding: 10px 0; margin-bottom: 15px; box-sizing: border-box; }
+#modalTitleInput:focus { outline: none; }
+#image-container { margin-bottom: 20px; }
+#image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+.img-preview-wrapper { position: relative; }
+.img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; }
+.delete-img-btn { position: absolute; top: -5px; right: -5px; background: black; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 22px; text-align: center; }
+.photo-actions { display: flex; gap: 10px; }
+.photo-add-btn { background-color: #e9e9e9; border: 1px dashed #ccc; padding: 10px; flex-grow: 1; border-radius: 8px; cursor: pointer; }
+.details-row { display: flex; gap: 20px; margin-bottom: 25px; }
+.detail-item { flex: 1; }
+.detail-item label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
+select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: #fafafa; }
+.color-selector { display: flex; gap: 10px; align-items: center; padding-top: 5px; }
+.color-dot { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+.color-dot.selected { border-color: #333; }
+.color-dot.red { background-color: #d63e2a; }
+.color-dot.green { background-color: #2add4a; }
+.color-dot.blue { background-color: #2a81dd; }
+.color-dot.grey { background-color: #586165; }
+.modal-buttons { display: flex; justify-content: space-between; align-items: center; }
+.save-btn { background-color: var(--primary-color); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; }
+.delete-btn { background: none; border: none; color: var(--danger-color); cursor: pointer; text-decoration: underline; }
+
+/* YENİ: Loader stilleri */
+#loader-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.loader-spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid var(--primary-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* YENİ: Toast Notification stilleri */
+#toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--dark-grey);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(20px);
+}
+#toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* Mobil Uyumlu Tasarım stilleri aynı kalabilir */
+@media (max-width: 768px) {
+    #sidebar { position: fixed; left: 0; top: 0; height: 100%; z-index: 2000; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+    #sidebar.visible { transform: translateX(0); }
+    #hamburger-menu, #close-sidebar { display: block; }
+    .modal-content { width: 95%; margin: 5% auto; padding: 15px; }
+    #modalTitleInput { font-size: 1.5em; }
+    .details-row { flex-direction: column; }
+}

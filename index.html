@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profesyonel Arazi Haritam</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<head>
+    </head>
+<body>
+    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+
+<body>
+    <div class="main-container">
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h2>Ağaç Listesi</h2>
+                <div id="close-sidebar">×</div>
+            </div>
+            <ul id="pin-list"></ul>
+        </aside>
+
+        <main id="main-content">
+            <div class="map-header">
+                <div id="hamburger-menu">☰</div>
+                <h1>Arazi Haritam</h1>
+            </div>
+            <div id="map"></div>
+        </main>
+    </div>
+
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <input type="text" id="modalTitleInput" placeholder="Ağacın Adı">
+            
+            <div id="image-container">
+                <div id="image-preview-container"></div>
+                <div class="photo-actions">
+                    <button id="addFromGallery" class="photo-add-btn">Galeriden Ekle</button>
+                    <button id="addFromCamera" class="photo-add-btn">Kamera ile Çek</button>
+                </div>
+            </div>
+            
+            <label for="modalDescriptionTextarea">Açıklama</label>
+            <textarea id="modalDescriptionTextarea" rows="4" placeholder="Ağaçla ilgili notlar..."></textarea>
+            
+            <div class="details-row">
+                <div class="detail-item">
+                    <label for="healthStatus">Sağlık Durumu</label>
+                    <select id="healthStatus">
+                        <option value="iyi">İyi</option>
+                        <option value="orta">Orta</option>
+                        <option value="zayif">Zayıf</option>
+                        <option value="kurumus">Kurumuş</option>
+                    </select>
+                </div>
+                <div class="detail-item">
+                    <label>Pin Rengi</label>
+                    <div id="pin-color-selector" class="color-selector">
+                        <div class="color-dot red" data-color="red"></div>
+                        <div class="color-dot green" data-color="green"></div>
+                        <div class="color-dot blue" data-color="blue"></div>
+                        <div class="color-dot grey selected" data-color="grey"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="saveButton" class="save-btn">Değişiklikleri Kaydet</button>
+                <button id="deleteButton" class="delete-btn">Bu Ağacı Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="gallery-upload" accept="image/*" multiple hidden>
+    <input type="file" id="camera-upload" accept="image/*" capture="user" hidden>
+    
+    <div id="loader-overlay" class="hidden">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <div id="toast-notification" class="hidden"></div>
+
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
