@@ -1,15 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------------------------
-    // KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
+    // ADIM 1: KENDİ BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyB38rAHCtL_5QCJCut9AkaMFsEFBmk9Zco",
-        authDomain: "arazi-maps.firebaseapp.com",
-        projectId: "arazi-maps",
-        storageBucket: "arazi-maps.firebasestorage.app",
-        messagingSenderId: "851218950638",
-        appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
+        apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
+        authDomain: "arazi-map.firebaseapp.com",
+        projectId: "arazi-map",
+        storageBucket: "arazi-map.appspot.com",
+        messagingSenderId: "817910306210",
+        appId: "1:817910306210:web:6aa878df1045a9c70e8efb"
     };
+
+    const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
@@ -49,8 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const gpsButton = document.getElementById('gps-button');
 
     // --- LEAFLET MAP & ICONS ---
-    const map = L.map(mapElement).setView([39.92, 32.85], 13);
+    const map = L.map(mapElement).setView([39.92, 32.85], 13); // Başlangıç konumu: Ankara
 
+    // Esri Yüksek Çözünürlüklü Uydu Haritası
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
         maxZoom: 22
