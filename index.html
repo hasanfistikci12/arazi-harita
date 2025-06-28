@@ -74,6 +74,13 @@
         </div>
     </div>
 
+    <div id="custom-lightbox" class="hidden">
+        <span class="lightbox-close">&times;</span>
+        <button class="lightbox-nav prev">&#10094;</button>
+        <img class="lightbox-content" id="lightbox-img">
+        <button class="lightbox-nav next">&#10095;</button>
+    </div>
+
     <input type="file" id="gallery-upload" accept="image/*" multiple hidden>
     <input type="file" id="camera-upload" accept="image/*" capture="user" hidden>
     
@@ -82,7 +89,7 @@
     </div>
     <div id="toast-notification" class="hidden"></div>
 
-    <!-- Script Kütüphaneleri (Sıralama Önemli!) -->
+    <!-- Script Kütüphaneleri -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
