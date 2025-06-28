@@ -1,21 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------------------------
-    // KENDİ FIREBASE VE MAPBOX BİLGİLERİNİZ
+    // KENDİ FIREBASE VE MAPBOX BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
-        authDomain: "arazi-map.firebaseapp.com",
-        projectId: "arazi-map",
-        storageBucket: "arazi-map.appspot.com",
-        messagingSenderId: "817910306210",
-        appId: "1:817910306210:web:6aa878df1045a9c70e8efb"
+        apiKey: "AIzaSyB38rAHCtL_5QCJCut9AkaMFsEFBmk9Zco",
+        authDomain: "arazi-maps.firebaseapp.com",
+        projectId: "arazi-maps",
+        storageBucket: "arazi-maps.firebasestorage.app",
+        messagingSenderId: "851218950638",
+        appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
     };
 
     const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
     
-    // DEĞİŞİKLİK BURADA: Arazinizin koordinatları eklendi.
     const LAND_COORDINATES = [37.384983, 37.794709]; 
-
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
@@ -57,11 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const landButton = document.getElementById('land-button');
 
     // --- LEAFLET MAP & ICONS ---
-    // DEĞİŞİKLİK BURADA: Haritayı, arazinizin koordinatlarına odaklanarak başlat
-    const map = L.map(mapElement).setView(LAND_COORDINATES, 17); 
+    const map = L.map(mapElement).setView(LAND_COORDINATES, 17);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        attribution: 'Tiles &copy; Esri',
         maxZoom: 22
     }).addTo(map);
 
@@ -98,10 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Tarayıcınız GPS özelliğini desteklemiyor.");
             return;
         }
-        
         isGpsActive = true;
         showToast("Konumunuz bulunuyor...");
-
         navigator.geolocation.watchPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
@@ -130,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let minDistance = Infinity;
         localTreesCache.forEach(tree => {
             if (tree.coords) {
-                const treeLatLng = L.latLng(tree.coords.lat, tree.coords.lng);
+                const treeLatLng = L.latLng(tree.coords.latitude, tree.coords.longitude);
                 const distance = userLatLng.distanceTo(treeLatLng);
                 if (distance < minDistance) {
                     minDistance = distance;
@@ -162,40 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMarkers(trees) {
         map.eachLayer(layer => { if (layer instanceof L.Marker && layer !== userLocationMarker) map.removeLayer(layer); });
         trees.forEach(tree => {
-            if (!tree.coords || tree.coords.lat === undefined) return;
-            const marker = L.marker([tree.coords.lat, tree.coords.lng], { icon: icons[tree.pinColor] || icons.grey }).addTo(map);
+            if (!tree.coords || tree.coords.latitude === undefined) return;
+            const marker = L.marker([tree.coords.latitude, tree.coords.longitude], { icon: icons[tree.pinColor] || icons.grey }).addTo(map);
             marker.on('click', () => { openEditModal(tree.id); });
         });
     }
-    
-    // ... Diğer tüm render, modal, save, delete, image fonksiyonları aynı kalabilir ...
-    
-    // --- EVENT LISTENERS & INITIALIZATION ---
-    landButton.onclick = () => {
-        showToast("Arazinize gidiliyor...");
-        map.flyTo(LAND_COORDINATES, 18);
-    };
 
-    gpsButton.onclick = () => {
-        if (userLocationMarker) {
-            map.flyTo(userLocationMarker.getLatLng(), 19);
-        } else {
-            if (!isGpsActive) {
-                startGpsTracking();
-            } else {
-                showToast("Konumunuz zaten bulunuyor...");
-            }
-        }
-    };
-    
-    // ... Diğer tüm event listener'lar aynı ...
-
-    // --- BAŞLANGIÇ ---
-    listenForRealtimeUpdates();
-    // GPS artık otomatik başlamıyor, kullanıcı butona basarak başlatacak.
-
-
-    // --- KODUN GERİ KALANI (Değişiklik yok) ---
     function renderSidebarList(trees) {
         pinList.innerHTML = '';
         trees.forEach(tree => {
@@ -210,16 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
             pinList.appendChild(listItem);
         });
     }
+
     function renderImagePreviews(imageUrls = []) {
         imagePreviewContainer.innerHTML = '';
-        let currentLightbox = null;
-        imageUrls.forEach((imgSrc, index) => {
+        imageUrls.forEach((imgSrc) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'img-preview-wrapper';
             const previewImg = document.createElement('img');
             previewImg.src = imgSrc;
             previewImg.className = 'img-preview';
-            previewImg.onclick = () => openLightbox(imageUrls, index);
+            previewImg.onclick = () => openLightbox(imageUrls, imageUrls.indexOf(imgSrc));
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-img-btn';
             deleteBtn.innerHTML = '&times;';
@@ -229,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
             imagePreviewContainer.appendChild(wrapper);
         });
     }
+
+    // --- ÖZEL GALERİ FONKSİYONLARI ---
     let currentLightboxImages = []; 
     let currentLightboxIndex = 0;
     function openLightbox(images, startIndex) {
@@ -252,10 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
         updateLightboxImage();
     }
+
+    // --- MODAL & FORM LOGIC ---
     function openEditModal(id) {
         const tree = localTreesCache.find(t => t.id === id);
         if (!tree) return;
-        currentPinInfo = { id: tree.id, coords: tree.coords };
+        currentPinInfo = { id: tree.id, coords: { lat: tree.coords.latitude, lng: tree.coords.longitude } };
         titleInput.value = tree.title;
         descriptionTextarea.value = tree.description;
         healthStatusSelect.value = tree.health;
@@ -266,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.style.display = 'block';
         modal.style.display = 'block';
     }
+
     function openCreateModal(coords) {
         currentPinInfo = { id: null, coords: { lat: coords.lat, lng: coords.lng } };
         titleInput.value = '';
@@ -277,10 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.style.display = 'none';
         modal.style.display = 'block';
     }
+    
     function closeModal() {
         modal.style.display = 'none';
         currentPinInfo = null;
     }
+
     async function handleSave() {
         if (!currentPinInfo) return;
         showLoader();
@@ -295,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 description: descriptionTextarea.value,
                 health: healthStatusSelect.value,
                 pinColor: selectedColor,
-                coords: currentPinInfo.coords,
+                coords: new firebase.firestore.GeoPoint(currentPinInfo.coords.lat, currentPinInfo.coords.lng),
                 imageUrls: treeData.imageUrls || []
             };
             if (currentPinInfo.id) {
@@ -307,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
         finally { hideLoader(); closeModal(); }
     }
+
     async function handleDelete() {
         if (!currentPinInfo || !currentPinInfo.id) return;
         if (confirm("Bu ağacı buluttan kalıcı olarak silmek istediğinizden emin misiniz?")) {
@@ -323,6 +298,8 @@ document.addEventListener('DOMContentLoaded', () => {
             finally { hideLoader(); closeModal(); }
         }
     }
+
+    // --- IMAGE HANDLING ---
     async function handleImageUpload(files) {
         if (!currentPinInfo || !currentPinInfo.id) {
             alert("Lütfen önce ağaç bilgilerini 'Değişiklikleri Kaydet' diyerek kaydedin, sonra fotoğraf ekleyin."); return;
@@ -343,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileRef = storage.ref().child(`images/${currentPinInfo.id}/${fileName}`);
             return fileRef.put(file).then(() => fileRef.getDownloadURL());
         });
+
         try {
             const downloadUrls = await Promise.all(uploadPromises);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayUnion(...downloadUrls) });
@@ -350,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Fotoğraf yükleme hatası:", error); showToast("Hata: Fotoğraflar yüklenemedi."); }
         finally { hideLoader(); }
     }
+
     async function handleDeleteImage(imageUrl) {
         if (!currentPinInfo || !currentPinInfo.id) return;
         if (!confirm("Bu fotoğrafı kalıcı olarak silmek istediğinizden emin misiniz?")) return;
@@ -364,6 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi."); }
         finally { hideLoader(); }
     }
+
+    // --- EVENT LISTENERS & INITIALIZATION ---
     closeButton.onclick = closeModal;
     saveButton.onclick = handleSave;
     deleteButton.onclick = handleDelete;
@@ -374,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = listItem.dataset.id;
             const tree = localTreesCache.find(t => t.id === id);
             if (tree) {
-                map.flyTo([tree.coords.lat, tree.coords.lng], 18);
+                map.flyTo([tree.coords.latitude, tree.coords.longitude], 18);
                 openEditModal(id);
                 if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
             }
@@ -391,11 +372,28 @@ document.addEventListener('DOMContentLoaded', () => {
     galleryUpload.onchange = (e) => handleImageUpload(e.target.files);
     cameraUpload.onchange = (e) => handleImageUpload(e.target.files);
     pinColorSelector.addEventListener('click', e => { if (e.target.classList.contains('color-dot')) { document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('selected')); e.target.classList.add('selected'); } });
+    
     lightboxClose.onclick = closeLightbox;
     lightboxNext.onclick = showNextImage;
     lightboxPrev.onclick = showPrevImage;
+    gpsButton.onclick = () => {
+        if (userLocationMarker) {
+            map.flyTo(userLocationMarker.getLatLng(), 19);
+        } else {
+            if (!isGpsActive) {
+                startGpsTracking();
+            } else {
+                showToast("Konumunuz zaten bulunuyor...");
+            }
+        }
+    };
+    landButton.onclick = () => {
+        showToast("Arazinize gidiliyor...");
+        map.flyTo(LAND_COORDINATES, 18);
+    };
     hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); setTimeout(() => map.invalidateSize(), 300); };
     closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
+
     listenForRealtimeUpdates();
 });
