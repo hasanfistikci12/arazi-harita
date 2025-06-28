@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let userLocationMarker = null;
     let lastProximityAlertTime = 0;
     let isGpsActive = false;
+    let isSaving = false; // YENİ: Kaydetme durumunu takip et
 
     // --- DOM ELEMENT REFERENCES ---
     const mapElement = document.getElementById('map');
@@ -256,16 +257,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSave() {
+        if (isSaving) return; // Eğer zaten kaydetme işlemi varsa, tekrar çalıştırma
         if (!currentPinInfo) return;
+
+        isSaving = true;
+        saveButton.disabled = true; // Butonu devre dışı bırak
         showLoader();
+
         try {
             let treeData = {};
             if (currentPinInfo.id) {
                 treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
             }
+            
+            let title = titleInput.value.trim();
+            if (title === '') {
+                // Otomatik isimlendirme
+                const fidanPins = localTreesCache.filter(t => t.title.startsWith('Fidan '));
+                title = `Fidan ${fidanPins.length + 1}`;
+            }
+
             const selectedColor = document.querySelector('.color-dot.selected').dataset.color;
             const treeObject = {
-                title: titleInput.value || "İsimsiz Ağaç",
+                title: title,
                 description: descriptionTextarea.value,
                 health: healthStatusSelect.value,
                 pinColor: selectedColor,
@@ -279,7 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             showToast("Başarıyla buluta kaydedildi!");
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
-        finally { hideLoader(); closeModal(); }
+        finally {
+            hideLoader();
+            closeModal();
+            isSaving = false;
+            saveButton.disabled = false; // Butonu tekrar aktif et
+        }
     }
 
     async function handleDelete() {
@@ -355,6 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = listItem.dataset.id;
             const tree = localTreesCache.find(t => t.id === id);
             if (tree) {
+                // DÜZELTME: Odaklanma için doğru koordinatları kullan
                 map.flyTo([tree.coords.latitude, tree.coords.longitude], 18);
                 openEditModal(id);
                 if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
