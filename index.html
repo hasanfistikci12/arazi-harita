@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS Destekli Arazi Haritam</title>
+    <title>Bulut Tabanlı Arazi Haritam</title>
     
+    <!-- Stil Dosyaları -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -69,24 +70,22 @@
             </div>
         </div>
     </div>
-    <div id="custom-lightbox" class="hidden">
-        <span class="lightbox-close">&times;</span>
-        <button class="lightbox-nav prev">&#10094;</button>
-        <img class="lightbox-content" id="lightbox-img">
-        <button class="lightbox-nav next">&#10095;</button>
-    </div>
+
     <input type="file" id="gallery-upload" accept="image/*" multiple hidden>
     <input type="file" id="camera-upload" accept="image/*" capture="user" hidden>
+    
     <div id="loader-overlay" class="hidden">
         <div class="loader-spinner"></div>
     </div>
     <div id="toast-notification" class="hidden"></div>
 
+    <!-- Script Kütüphaneleri (Sıralama Önemli!) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Kendi Scriptimiz (En Sonda) -->
     <script src="script.js"></script>
 </body>
 </html>
