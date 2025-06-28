@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         storageBucket: "arazi-maps.firebasestorage.app",
         messagingSenderId: "851218950638",
         appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
-    };
+   };
 
     const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
     
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let userLocationMarker = null;
     let lastProximityAlertTime = 0;
     let isGpsActive = false;
-    let isSaving = false;
+    let isSaving = false; // YENİ: Kaydetme durumunu takip et
 
     // --- DOM ELEMENT REFERENCES ---
     const mapElement = document.getElementById('map');
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditModal(id) {
         const tree = localTreesCache.find(t => t.id === id);
         if (!tree) return;
-        currentPinInfo = { id: tree.id, coords: { lat: tree.coords.latitude, lng: tree.coords.longitude }, tempImages: [] };
+        currentPinInfo = { id: tree.id, coords: { lat: tree.coords.latitude, lng: tree.coords.longitude } };
         titleInput.value = tree.title;
         descriptionTextarea.value = tree.description;
         healthStatusSelect.value = tree.health;
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openCreateModal(coords) {
-        currentPinInfo = { id: null, coords: { lat: coords.lat, lng: coords.lng }, tempImages: [] };
+        currentPinInfo = { id: null, coords: { lat: coords.lat, lng: coords.lng } };
         titleInput.value = '';
         descriptionTextarea.value = '';
         healthStatusSelect.value = 'iyi';
@@ -257,20 +257,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSave() {
-        if (isSaving) return;
+        if (isSaving) return; // Eğer zaten kaydetme işlemi varsa, tekrar çalıştırma
         if (!currentPinInfo) return;
+
         isSaving = true;
-        saveButton.disabled = true;
+        saveButton.disabled = true; // Butonu devre dışı bırak
         showLoader();
+
         try {
             let treeData = {};
-            let docId = currentPinInfo.id;
-            if (docId) {
-                treeData = localTreesCache.find(t => t.id === docId) || {};
+            if (currentPinInfo.id) {
+                treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
             }
             
             let title = titleInput.value.trim();
             if (title === '') {
+                // Otomatik isimlendirme
                 const fidanPins = localTreesCache.filter(t => t.title.startsWith('Fidan '));
                 title = `Fidan ${fidanPins.length + 1}`;
             }
@@ -284,24 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 coords: new firebase.firestore.GeoPoint(currentPinInfo.coords.lat, currentPinInfo.coords.lng),
                 imageUrls: treeData.imageUrls || []
             };
-
-            if (docId) {
-                await db.collection("trees").doc(docId).set(treeObject, { merge: true });
+            if (currentPinInfo.id) {
+                await db.collection("trees").doc(currentPinInfo.id).set(treeObject, { merge: true });
             } else {
-                const docRef = await db.collection("trees").add(treeObject);
-                docId = docRef.id;
-            }
-            
-            if (currentPinInfo.tempImages && currentPinInfo.tempImages.length > 0) {
-                const uploadPromises = currentPinInfo.tempImages.map(file => {
-                    const fileName = `${Date.now()}-${file.name}`;
-                    const fileRef = storage.ref().child(`images/${docId}/${fileName}`);
-                    return fileRef.put(file).then(() => fileRef.getDownloadURL());
-                });
-                const downloadUrls = await Promise.all(uploadPromises);
-                await db.collection("trees").doc(docId).update({ 
-                    imageUrls: firebase.firestore.FieldValue.arrayUnion(...downloadUrls) 
-                });
+                await db.collection("trees").add(treeObject);
             }
             showToast("Başarıyla buluta kaydedildi!");
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
@@ -309,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoader();
             closeModal();
             isSaving = false;
-            saveButton.disabled = false;
+            saveButton.disabled = false; // Butonu tekrar aktif et
         }
     }
 
@@ -331,17 +319,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- IMAGE HANDLING ---
-    function handleImageUpload(files) {
-        if (!currentPinInfo) return;
-        const existingImageCount = (currentPinInfo.imageUrls?.length || 0) + (currentPinInfo.tempImages?.length || 0);
+    async function handleImageUpload(files) {
+        if (!currentPinInfo || !currentPinInfo.id) {
+            alert("Lütfen önce ağaç bilgilerini 'Değişiklikleri Kaydet' diyerek kaydedin, sonra fotoğraf ekleyin."); return;
+        }
+        const treeRef = db.collection("trees").doc(currentPinInfo.id);
+        const treeDoc = await treeRef.get();
+        if (!treeDoc.exists) {
+            alert("Ağaç henüz veritabanında oluşturulmadı. Lütfen önce kaydedin.");
+            return;
+        }
+        const existingImageCount = treeDoc.data().imageUrls?.length || 0;
         if (existingImageCount + files.length > 10) { alert("En fazla 10 fotoğraf yükleyebilirsiniz."); return; }
         if (files.length === 0) return;
         
-        Array.from(files).forEach(file => currentPinInfo.tempImages.push(file));
-        
-        const tempImageUrls = currentPinInfo.tempImages.map(file => URL.createObjectURL(file));
-        const existingImageUrls = localTreesCache.find(t => t.id === currentPinInfo.id)?.imageUrls || [];
-        renderImagePreviews([...existingImageUrls, ...tempImageUrls]);
+        showLoader();
+        const uploadPromises = Array.from(files).map(file => {
+            const fileName = `${Date.now()}-${file.name}`;
+            const fileRef = storage.ref().child(`images/${currentPinInfo.id}/${fileName}`);
+            return fileRef.put(file).then(() => fileRef.getDownloadURL());
+        });
+
+        try {
+            const downloadUrls = await Promise.all(uploadPromises);
+            await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayUnion(...downloadUrls) });
+            showToast(`${files.length} fotoğraf yüklendi ve kaydedildi.`);
+        } catch (error) { console.error("Fotoğraf yükleme hatası:", error); showToast("Hata: Fotoğraflar yüklenemedi."); }
+        finally { hideLoader(); }
     }
 
     async function handleDeleteImage(imageUrl) {
@@ -369,7 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (listItem) {
             const id = listItem.dataset.id;
             const tree = localTreesCache.find(t => t.id === id);
-            if (tree && tree.coords) {
+            if (tree) {
+                // DÜZELTME: Odaklanma için doğru koordinatları kullan
                 map.flyTo([tree.coords.latitude, tree.coords.longitude], 18);
                 openEditModal(id);
                 if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
