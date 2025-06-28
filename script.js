@@ -1,15 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------------------------
-    // ADIM 1: KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
+    // ADIM 1: KENDİ BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyB38rAHCtL_5QCJCut9AkaMFsEFBmk9Zco",
-        authDomain: "arazi-maps.firebaseapp.com",
-        projectId: "arazi-maps",
-        storageBucket: "arazi-maps.firebasestorage.app",
-        messagingSenderId: "851218950638",
-        appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
+        apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
+        authDomain: "arazi-map.firebaseapp.com",
+        projectId: "arazi-map",
+        storageBucket: "arazi-map.appspot.com",
+        messagingSenderId: "817910306210",
+        appId: "1:817910306210:web:6aa878df1045a9c70e8efb"
     };
+
+    const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
@@ -18,11 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE & CONFIG ---
     let currentPinInfo = null;
-    let currentLightboxImages = []; 
-    let currentLightboxIndex = 0;
     let localTreesCache = [];
-    const imageWidth = 2048;
-    const imageHeight = 1536;
+    let userLocationMarker = null;
+    let lastProximityAlertTime = 0;
 
     // --- DOM ELEMENT REFERENCES ---
     const mapElement = document.getElementById('map');
@@ -48,12 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightboxClose = document.querySelector('.lightbox-close');
     const lightboxPrev = document.querySelector('.lightbox-nav.prev');
     const lightboxNext = document.querySelector('.lightbox-nav.next');
-    
+    const gpsButton = document.getElementById('gps-button');
+
     // --- LEAFLET MAP & ICONS ---
-    const map = L.map(mapElement, { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2 });
-    const bounds = [[0, 0], [-imageHeight, imageWidth]];
-    L.imageOverlay('arazi.jpg', bounds).addTo(map);
-    map.fitBounds(bounds);
+    const map = L.map(mapElement).setView([41.01, 28.97], 13); // Başlangıç konumu
+
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 22,
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: MAPBOX_ACCESS_TOKEN
+    }).addTo(map);
+
     const icons = {
         red: createIcon('red'),
         green: createIcon('green'),
@@ -62,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     function createIcon(color) {
         return new L.Icon({
-            iconUrl: `icons/marker-${color}.png`,
+            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
@@ -78,7 +85,52 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             toastNotification.classList.remove('show');
             setTimeout(() => toastNotification.classList.add('hidden'), 300);
-        }, 2000);
+        }, 3000);
+    }
+
+    // --- GPS & PROXIMITY ---
+    function startGpsTracking() {
+        if (!navigator.geolocation) {
+            showToast("Tarayıcınız GPS özelliğini desteklemiyor.");
+            return;
+        }
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const userLatLng = L.latLng(latitude, longitude);
+                if (userLocationMarker) {
+                    userLocationMarker.setLatLng(userLatLng);
+                } else {
+                    const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="pulse"></div>', iconSize: [20, 20] });
+                    userLocationMarker = L.marker(userLatLng, { icon: userIcon }).addTo(map);
+                    map.flyTo(userLatLng, 18); // İlk bulunduğunda konuma git
+                }
+                checkProximity(userLatLng);
+            },
+            () => { showToast("Konum bilgisi alınamadı. İzinleri kontrol edin."); },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    function checkProximity(userLatLng) {
+        const now = Date.now();
+        if (now - lastProximityAlertTime < 10000) return;
+        let closestTree = null;
+        let minDistance = Infinity;
+        localTreesCache.forEach(tree => {
+            if (tree.coords) {
+                const treeLatLng = L.latLng(tree.coords.lat, tree.coords.lng);
+                const distance = userLatLng.distanceTo(treeLatLng);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestTree = tree;
+                }
+            }
+        });
+        if (closestTree && minDistance < 15) {
+            showToast(`Yakınsınız: ${closestTree.title} (${minDistance.toFixed(0)}m)`);
+            lastProximityAlertTime = now;
+        }
     }
 
     // --- FIREBASE & UI RENDERING ---
@@ -97,9 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMarkers(trees) {
-        map.eachLayer(layer => { if (layer instanceof L.Marker) map.removeLayer(layer); });
+        map.eachLayer(layer => { if (layer instanceof L.Marker && layer !== userLocationMarker) map.removeLayer(layer); });
         trees.forEach(tree => {
-            if (!tree.coords) return;
+            if (!tree.coords || tree.coords.lat === undefined) return;
             const marker = L.marker([tree.coords.lat, tree.coords.lng], { icon: icons[tree.pinColor] || icons.grey }).addTo(map);
             marker.on('click', () => { openEditModal(tree.id); });
         });
@@ -122,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderImagePreviews(imageUrls = []) {
         imagePreviewContainer.innerHTML = '';
+        let currentLightbox = null;
         imageUrls.forEach((imgSrc, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'img-preview-wrapper';
@@ -140,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- ÖZEL GALERİ FONKSİYONLARI ---
+    let currentLightboxImages = []; 
+    let currentLightboxIndex = 0;
     function openLightbox(images, startIndex) {
         currentLightboxImages = images;
         currentLightboxIndex = startIndex;
@@ -199,9 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentPinInfo) return;
         showLoader();
         try {
-            let treeData = {};
+            let existingImageUrls = [];
             if (currentPinInfo.id) {
-                treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
+                const treeData = localTreesCache.find(t => t.id === currentPinInfo.id);
+                existingImageUrls = treeData?.imageUrls || [];
             }
             const selectedColor = document.querySelector('.color-dot.selected').dataset.color;
             const treeObject = {
@@ -210,12 +266,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 health: healthStatusSelect.value,
                 pinColor: selectedColor,
                 coords: currentPinInfo.coords,
-                imageUrls: treeData.imageUrls || []
+                imageUrls: existingImageUrls
             };
             if (currentPinInfo.id) {
                 await db.collection("trees").doc(currentPinInfo.id).set(treeObject, { merge: true });
             } else {
-                await db.collection("trees").add(treeObject);
+                const docRef = await db.collection("trees").add(treeObject);
+                currentPinInfo.id = docRef.id;
             }
             showToast("Başarıyla buluta kaydedildi!");
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
@@ -280,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const treeRef = db.collection("trees").doc(currentPinInfo.id);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayRemove(imageUrl) });
             showToast("Fotoğraf silindi.");
-        } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi."); }
+        } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi!"); }
         finally { hideLoader(); }
     }
 
@@ -297,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (tree) {
                 map.flyTo([tree.coords.lat, tree.coords.lng], 2);
                 openEditModal(id);
-                if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); }
+                if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
             }
         }
     });
@@ -305,12 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('delete-img-btn')) {
             const imageUrl = e.target.dataset.src;
             handleDeleteImage(imageUrl);
-        } else if (e.target.classList.contains('img-preview')) {
-            const clickedImageSrc = e.target.src;
-            const allImageElements = imagePreviewContainer.querySelectorAll('.img-preview');
-            const allImageUrls = Array.from(allImageElements).map(el => el.src);
-            const clickedIndex = allImageUrls.findIndex(url => url === clickedImageSrc);
-            openLightbox(allImageUrls, clickedIndex);
         }
     });
     document.getElementById('addFromGallery').onclick = () => galleryUpload.click();
@@ -327,4 +378,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
 
     listenForRealtimeUpdates();
+    startGpsTracking();
 });
