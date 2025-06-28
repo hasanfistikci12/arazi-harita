@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightboxNext = document.querySelector('.lightbox-nav.next');
     const gpsButton = document.getElementById('gps-button');
     const landButton = document.getElementById('land-button');
-    const themeToggleButton = document.getElementById('theme-toggle-button');
 
     // --- LEAFLET MAP & ICONS ---
     const map = L.map(mapElement).setView(LAND_COORDINATES, 17);
@@ -265,16 +264,19 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoader();
         try {
             let treeData = {};
-            if (currentPinInfo.id) {
-                treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
+            let docId = currentPinInfo.id;
+            if (docId) {
+                treeData = localTreesCache.find(t => t.id === docId) || {};
             }
+            
             let title = titleInput.value.trim();
             if (title === '') {
                 const fidanPins = localTreesCache.filter(t => t.title.startsWith('Fidan '));
                 title = `Fidan ${fidanPins.length + 1}`;
             }
+
             const selectedColor = document.querySelector('.color-dot.selected').dataset.color;
-            let treeObject = {
+            const treeObject = {
                 title: title,
                 description: descriptionTextarea.value,
                 health: healthStatusSelect.value,
@@ -283,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageUrls: treeData.imageUrls || []
             };
 
-            let docId = currentPinInfo.id;
             if (docId) {
                 await db.collection("trees").doc(docId).set(treeObject, { merge: true });
             } else {
@@ -291,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 docId = docRef.id;
             }
             
-            // Yeni eklenen fotoğrafları yükle
             if (currentPinInfo.tempImages && currentPinInfo.tempImages.length > 0) {
                 const uploadPromises = currentPinInfo.tempImages.map(file => {
                     const fileName = `${Date.now()}-${file.name}`;
@@ -332,15 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- IMAGE HANDLING ---
     function handleImageUpload(files) {
-        if (!currentPinInfo) return; // Bu uyarıyı kaldırıyoruz, artık gerek yok.
+        if (!currentPinInfo) return;
         const existingImageCount = (currentPinInfo.imageUrls?.length || 0) + (currentPinInfo.tempImages?.length || 0);
         if (existingImageCount + files.length > 10) { alert("En fazla 10 fotoğraf yükleyebilirsiniz."); return; }
         if (files.length === 0) return;
         
-        // Seçilen dosyaları geçici listeye ekle
         Array.from(files).forEach(file => currentPinInfo.tempImages.push(file));
         
-        // Önizlemeyi güncelle
         const tempImageUrls = currentPinInfo.tempImages.map(file => URL.createObjectURL(file));
         const existingImageUrls = localTreesCache.find(t => t.id === currentPinInfo.id)?.imageUrls || [];
         renderImagePreviews([...existingImageUrls, ...tempImageUrls]);
@@ -371,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (listItem) {
             const id = listItem.dataset.id;
             const tree = localTreesCache.find(t => t.id === id);
-            if (tree) {
+            if (tree && tree.coords) {
                 map.flyTo([tree.coords.latitude, tree.coords.longitude], 18);
                 openEditModal(id);
                 if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
@@ -412,19 +410,5 @@ document.addEventListener('DOMContentLoaded', () => {
     closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
 
-    // Dark Mode Toggle
-    themeToggleButton.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-        localStorage.setItem('theme', theme);
-    });
-
-    // Sayfa Yüklendiğinde Temayı Uygula
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-
     listenForRealtimeUpdates();
-});
-
 });
