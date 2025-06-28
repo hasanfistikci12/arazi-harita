@@ -98,6 +98,13 @@ select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px s
 #toast-notification { position: fixed; bottom: 20px; right: 20px; background-color: var(--dark-grey); color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(20px); }
 #toast-notification.show { opacity: 1; transform: translateY(0); }
 .hidden { display: none !important; }
+#custom-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+.lightbox-content { max-width: 90%; max-height: 80%; object-fit: contain; }
+.lightbox-close { position: absolute; top: 20px; right: 35px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
+.lightbox-nav { cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%); width: auto; padding: 16px; color: white; font-weight: bold; font-size: 20px; transition: 0.3s ease; user-select: none; background-color: rgba(0,0,0,0.3); }
+.lightbox-nav.prev { left: 0; border-radius: 0 3px 3px 0; }
+.lightbox-nav.next { right: 0; border-radius: 3px 0 0 3px; }
+.lightbox-nav:hover { background-color: rgba(0,0,0,0.8); }
 @media (max-width: 768px) {
     #sidebar { position: fixed; left: 0; top: 0; height: 100%; z-index: 2000; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
     #sidebar.visible { transform: translateX(0); }
