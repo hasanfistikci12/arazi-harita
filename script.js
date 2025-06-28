@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------------------------
-    // ADIM 1: KENDİ BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
+    // KENDİ FIREBASE VE MAPBOX BİLGİLERİNİZ
     // --------------------------------------------------------------------
     const firebaseConfig = {
         apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
+    
+    // DEĞİŞİKLİK BURADA: Arazinizin koordinatları eklendi.
+    const LAND_COORDINATES = [37.384983, 37.794709]; 
+
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
@@ -23,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let localTreesCache = [];
     let userLocationMarker = null;
     let lastProximityAlertTime = 0;
+    let isGpsActive = false;
 
     // --- DOM ELEMENT REFERENCES ---
     const mapElement = document.getElementById('map');
@@ -49,11 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightboxPrev = document.querySelector('.lightbox-nav.prev');
     const lightboxNext = document.querySelector('.lightbox-nav.next');
     const gpsButton = document.getElementById('gps-button');
+    const landButton = document.getElementById('land-button');
 
     // --- LEAFLET MAP & ICONS ---
-    const map = L.map(mapElement).setView([39.92, 32.85], 13); // Başlangıç konumu: Ankara
+    // DEĞİŞİKLİK BURADA: Haritayı, arazinizin koordinatlarına odaklanarak başlat
+    const map = L.map(mapElement).setView(LAND_COORDINATES, 17); 
 
-    // Esri Yüksek Çözünürlüklü Uydu Haritası
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
         maxZoom: 22
@@ -92,6 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast("Tarayıcınız GPS özelliğini desteklemiyor.");
             return;
         }
+        
+        isGpsActive = true;
+        showToast("Konumunuz bulunuyor...");
+
         navigator.geolocation.watchPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
@@ -101,11 +111,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="pulse"></div>', iconSize: [20, 20] });
                     userLocationMarker = L.marker(userLatLng, { icon: userIcon }).addTo(map);
-                    map.flyTo(userLatLng, 18);
+                    showToast("Konumunuz bulundu!");
                 }
                 checkProximity(userLatLng);
             },
-            () => { showToast("Konum bilgisi alınamadı. İzinleri kontrol edin."); },
+            () => { 
+                showToast("Konum bilgisi alınamadı. İzinleri kontrol edin.");
+                isGpsActive = false;
+            },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
@@ -154,7 +167,35 @@ document.addEventListener('DOMContentLoaded', () => {
             marker.on('click', () => { openEditModal(tree.id); });
         });
     }
+    
+    // ... Diğer tüm render, modal, save, delete, image fonksiyonları aynı kalabilir ...
+    
+    // --- EVENT LISTENERS & INITIALIZATION ---
+    landButton.onclick = () => {
+        showToast("Arazinize gidiliyor...");
+        map.flyTo(LAND_COORDINATES, 18);
+    };
 
+    gpsButton.onclick = () => {
+        if (userLocationMarker) {
+            map.flyTo(userLocationMarker.getLatLng(), 19);
+        } else {
+            if (!isGpsActive) {
+                startGpsTracking();
+            } else {
+                showToast("Konumunuz zaten bulunuyor...");
+            }
+        }
+    };
+    
+    // ... Diğer tüm event listener'lar aynı ...
+
+    // --- BAŞLANGIÇ ---
+    listenForRealtimeUpdates();
+    // GPS artık otomatik başlamıyor, kullanıcı butona basarak başlatacak.
+
+
+    // --- KODUN GERİ KALANI (Değişiklik yok) ---
     function renderSidebarList(trees) {
         pinList.innerHTML = '';
         trees.forEach(tree => {
@@ -169,9 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
             pinList.appendChild(listItem);
         });
     }
-
     function renderImagePreviews(imageUrls = []) {
         imagePreviewContainer.innerHTML = '';
+        let currentLightbox = null;
         imageUrls.forEach((imgSrc, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'img-preview-wrapper';
@@ -188,8 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             imagePreviewContainer.appendChild(wrapper);
         });
     }
-
-    // --- ÖZEL GALERİ FONKSİYONLARI ---
     let currentLightboxImages = []; 
     let currentLightboxIndex = 0;
     function openLightbox(images, startIndex) {
@@ -213,8 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentLightboxIndex = (currentLightboxIndex - 1 + currentLightboxImages.length) % currentLightboxImages.length;
         updateLightboxImage();
     }
-
-    // --- MODAL & FORM LOGIC ---
     function openEditModal(id) {
         const tree = localTreesCache.find(t => t.id === id);
         if (!tree) return;
@@ -229,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.style.display = 'block';
         modal.style.display = 'block';
     }
-
     function openCreateModal(coords) {
         currentPinInfo = { id: null, coords: { lat: coords.lat, lng: coords.lng } };
         titleInput.value = '';
@@ -241,12 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteButton.style.display = 'none';
         modal.style.display = 'block';
     }
-    
     function closeModal() {
         modal.style.display = 'none';
         currentPinInfo = null;
     }
-
     async function handleSave() {
         if (!currentPinInfo) return;
         showLoader();
@@ -273,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
         finally { hideLoader(); closeModal(); }
     }
-
     async function handleDelete() {
         if (!currentPinInfo || !currentPinInfo.id) return;
         if (confirm("Bu ağacı buluttan kalıcı olarak silmek istediğinizden emin misiniz?")) {
@@ -290,8 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
             finally { hideLoader(); closeModal(); }
         }
     }
-
-    // --- IMAGE HANDLING ---
     async function handleImageUpload(files) {
         if (!currentPinInfo || !currentPinInfo.id) {
             alert("Lütfen önce ağaç bilgilerini 'Değişiklikleri Kaydet' diyerek kaydedin, sonra fotoğraf ekleyin."); return;
@@ -312,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileRef = storage.ref().child(`images/${currentPinInfo.id}/${fileName}`);
             return fileRef.put(file).then(() => fileRef.getDownloadURL());
         });
-
         try {
             const downloadUrls = await Promise.all(uploadPromises);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayUnion(...downloadUrls) });
@@ -320,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Fotoğraf yükleme hatası:", error); showToast("Hata: Fotoğraflar yüklenemedi."); }
         finally { hideLoader(); }
     }
-
     async function handleDeleteImage(imageUrl) {
         if (!currentPinInfo || !currentPinInfo.id) return;
         if (!confirm("Bu fotoğrafı kalıcı olarak silmek istediğinizden emin misiniz?")) return;
@@ -335,8 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi."); }
         finally { hideLoader(); }
     }
-
-    // --- EVENT LISTENERS & INITIALIZATION ---
     closeButton.onclick = closeModal;
     saveButton.onclick = handleSave;
     deleteButton.onclick = handleDelete;
@@ -364,21 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
     galleryUpload.onchange = (e) => handleImageUpload(e.target.files);
     cameraUpload.onchange = (e) => handleImageUpload(e.target.files);
     pinColorSelector.addEventListener('click', e => { if (e.target.classList.contains('color-dot')) { document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('selected')); e.target.classList.add('selected'); } });
-    
     lightboxClose.onclick = closeLightbox;
     lightboxNext.onclick = showNextImage;
     lightboxPrev.onclick = showPrevImage;
-    gpsButton.onclick = () => {
-        if (userLocationMarker) {
-            map.flyTo(userLocationMarker.getLatLng(), 19);
-        } else {
-            showToast("Önce konumunuzun bulunması bekleniyor...");
-        }
-    };
     hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); setTimeout(() => map.invalidateSize(), 300); };
     closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
-
     listenForRealtimeUpdates();
-    startGpsTracking();
 });
