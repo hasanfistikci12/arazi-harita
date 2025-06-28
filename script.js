@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------------------------
-    // ADIM 1: KENDİ BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
+    // KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
         apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "817910306210",
         appId: "1:817910306210:web:6aa878df1045a9c70e8efb"
     };
-
-    const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaGFzYW5maXN0aWtjaSIsImEiOiJjbWNmaHQ4NHEwYWE2MmlzaXpxOWhya2U3In0.Zz--FFAQHeGkwPtsWEULug';
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
@@ -51,14 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const gpsButton = document.getElementById('gps-button');
 
     // --- LEAFLET MAP & ICONS ---
-    const map = L.map(mapElement).setView([41.01, 28.97], 13); // Başlangıç konumu
+    const map = L.map(mapElement).setView([39.92, 32.85], 13); // Başlangıç konumu: Ankara
 
-    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 22,
-        tileSize: 512,
-        zoomOffset: -1,
-        accessToken: MAPBOX_ACCESS_TOKEN
+    // YENİ: Esri Yüksek Çözünürlüklü Uydu Haritası
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
     }).addTo(map);
 
     const icons = {
@@ -69,7 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     function createIcon(color) {
         return new L.Icon({
-            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+            // Daha kalıcı ikon linkleri
+            iconUrl: `https://raw.githack.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
@@ -84,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toastNotification.classList.add('show');
         setTimeout(() => {
             toastNotification.classList.remove('show');
-            setTimeout(() => toastNotification.classList.add('hidden'), 300);
+            setTimeout(() => toastNotification.classList.add('hidden'), 3000);
         }, 3000);
     }
 
@@ -174,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderImagePreviews(imageUrls = []) {
         imagePreviewContainer.innerHTML = '';
-        let currentLightbox = null;
         imageUrls.forEach((imgSrc, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'img-preview-wrapper';
@@ -337,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const treeRef = db.collection("trees").doc(currentPinInfo.id);
             await treeRef.update({ imageUrls: firebase.firestore.FieldValue.arrayRemove(imageUrl) });
             showToast("Fotoğraf silindi.");
-        } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi!"); }
+        } catch (error) { console.error("Fotoğraf silme hatası:", error); showToast("Hata: Fotoğraf silinemedi."); }
         finally { hideLoader(); }
     }
 
@@ -352,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = listItem.dataset.id;
             const tree = localTreesCache.find(t => t.id === id);
             if (tree) {
-                map.flyTo([tree.coords.lat, tree.coords.lng], 2);
+                map.flyTo([tree.coords.lat, tree.coords.lng], 18);
                 openEditModal(id);
                 if (window.innerWidth <= 768) { sidebar.classList.remove('visible'); }
             }
@@ -373,8 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxClose.onclick = closeLightbox;
     lightboxNext.onclick = showNextImage;
     lightboxPrev.onclick = showPrevImage;
-    hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); setTimeout(() => map.invalidateSize(), 300); };
-    closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
+
+    hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); };
+    closeSidebar.onclick = () => { sidebar.classList.remove('visible'); };
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
 
     listenForRealtimeUpdates();
