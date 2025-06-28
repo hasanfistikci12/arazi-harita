@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // KENDİ FIREBASE BİLGİLERİNİZİ BURAYA YAPIŞTIRIN
     // --------------------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "AIzaSyA5At2zkgoVU0Vy9eX869wtJFQdkDQMMhs",
-        authDomain: "arazi-map.firebaseapp.com",
-        projectId: "arazi-map",
-        storageBucket: "arazi-map.appspot.com",
-        messagingSenderId: "817910306210",
-        appId: "1:817910306210:web:6aa878df1045a9c70e8efb"
+        apiKey: "AIzaSyB38rAHCtL_5QCJCut9AkaMFsEFBmk9Zco",
+        authDomain: "arazi-maps.firebaseapp.com",
+        projectId: "arazi-maps",
+        storageBucket: "arazi-maps.firebasestorage.app",
+        messagingSenderId: "851218950638",
+        appId: "1:851218950638:web:92aee6b90cb562610ec6ff"
     };
 
     // Firebase'i başlat
@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const gpsButton = document.getElementById('gps-button');
 
     // --- LEAFLET MAP & ICONS ---
-    const map = L.map(mapElement).setView([39.92, 32.85], 13); // Başlangıç konumu: Ankara
+    const map = L.map(mapElement).setView([39.92, 32.85], 13);
 
-    // YENİ: Esri Yüksek Çözünürlüklü Uydu Haritası
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 22
     }).addTo(map);
 
     const icons = {
@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     function createIcon(color) {
         return new L.Icon({
-            // Daha kalıcı ikon linkleri
             iconUrl: `https://raw.githack.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
@@ -99,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const userIcon = L.divIcon({ className: 'user-location-marker', html: '<div class="pulse"></div>', iconSize: [20, 20] });
                     userLocationMarker = L.marker(userLatLng, { icon: userIcon }).addTo(map);
-                    map.flyTo(userLatLng, 18); // İlk bulunduğunda konuma git
+                    map.flyTo(userLatLng, 18);
                 }
                 checkProximity(userLatLng);
             },
@@ -249,10 +248,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentPinInfo) return;
         showLoader();
         try {
-            let existingImageUrls = [];
+            let treeData = {};
             if (currentPinInfo.id) {
-                const treeData = localTreesCache.find(t => t.id === currentPinInfo.id);
-                existingImageUrls = treeData?.imageUrls || [];
+                treeData = localTreesCache.find(t => t.id === currentPinInfo.id) || {};
             }
             const selectedColor = document.querySelector('.color-dot.selected').dataset.color;
             const treeObject = {
@@ -261,13 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 health: healthStatusSelect.value,
                 pinColor: selectedColor,
                 coords: currentPinInfo.coords,
-                imageUrls: existingImageUrls
+                imageUrls: treeData.imageUrls || []
             };
             if (currentPinInfo.id) {
                 await db.collection("trees").doc(currentPinInfo.id).set(treeObject, { merge: true });
             } else {
-                const docRef = await db.collection("trees").add(treeObject);
-                currentPinInfo.id = docRef.id;
+                await db.collection("trees").add(treeObject);
             }
             showToast("Başarıyla buluta kaydedildi!");
         } catch (error) { console.error("Kaydetme hatası:", error); showToast("Hata: Buluta kaydedilemedi!"); }
@@ -281,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const tree = localTreesCache.find(t => t.id === currentPinInfo.id);
                 if (tree && tree.imageUrls && tree.imageUrls.length > 0) {
-                    const deletePromises = tree.imageUrls.map(url => storage.refFromURL(url).delete().catch(err => console.warn("Resim silinemedi (zaten silinmiş olabilir):", err)));
+                    const deletePromises = tree.imageUrls.map(url => storage.refFromURL(url).delete().catch(err => console.warn("Resim silinemedi:", err)));
                     await Promise.all(deletePromises);
                 }
                 await db.collection("trees").doc(currentPinInfo.id).delete();
@@ -368,9 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxClose.onclick = closeLightbox;
     lightboxNext.onclick = showNextImage;
     lightboxPrev.onclick = showPrevImage;
-
-    hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); };
-    closeSidebar.onclick = () => { sidebar.classList.remove('visible'); };
+    gpsButton.onclick = () => {
+        if (userLocationMarker) {
+            map.flyTo(userLocationMarker.getLatLng(), 19);
+        } else {
+            showToast("Önce konumunuzun bulunması bekleniyor...");
+        }
+    };
+    hamburgerMenu.onclick = () => { sidebar.classList.add('visible'); setTimeout(() => map.invalidateSize(), 300); };
+    closeSidebar.onclick = () => { sidebar.classList.remove('visible'); setTimeout(() => map.invalidateSize(), 300); };
     window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 150); });
 
     listenForRealtimeUpdates();
